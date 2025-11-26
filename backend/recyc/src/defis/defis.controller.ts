@@ -25,26 +25,22 @@ export class DefisController {
     return await this.defisService.findAll();
   }
 
-  // ✅ Récupérer un défi par ID
   @Get(':id')
   async findOne(@Param('id') id: number) {
     return await this.defisService.findOne(id);
   }
 
-  // ✅ Mettre à jour un défi
   @Patch(':id')
   async update(@Param('id') id: number, @Body() data: any) {
     return await this.defisService.update(id, data);
   }
 
-  // ✅ Supprimer un défi
   @Delete(':id')
   async remove(@Param('id') id: number) {
     await this.defisService.remove(id);
     return { message: `Défi ${id} supprimé avec succès` };
   }
 
-  // ✅ Participer à un défi
   @Post(':id/participer')
   async participer(
     @Param('id') defiId: number,

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Recycle, LogOut, Package, Settings, Languages } from 'lucide-react';
+import { Recycle, LogOut, Package, Settings, Languages, MessageSquare } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from './ui/button';
@@ -12,12 +12,14 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { useState } from 'react';
+import { AdminMessagerieDialog } from './AdminMessagerieDialog';
 
 export function Navigation() {
   const location = useLocation();
   const { isAuthenticated, user, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMessagerieOpen, setIsMessagerieOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -79,16 +81,26 @@ export function Navigation() {
                   {t('nav.createListing')}
                 </Link>
                 {isAuthenticated && (
-                  <Link 
-                    to="/mes-annonces" 
-                    className={`px-4 py-2 rounded-lg transition-all duration-300 ${
-                      isActive('/mes-annonces') 
-                        ? 'gradient-primary text-white shadow-md' 
-                        : 'hover:bg-gray-50 text-gray-700'
-                    }`}
-                  >
-                    {t('nav.myListings')}
-                  </Link>
+                  <>
+                    <Link 
+                      to="/mes-annonces" 
+                      className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                        isActive('/mes-annonces') 
+                          ? 'gradient-primary text-white shadow-md' 
+                          : 'hover:bg-gray-50 text-gray-700'
+                      }`}
+                    >
+                      {t('nav.myListings')}
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setIsMessagerieOpen(true)}
+                      className="px-4 py-2 rounded-lg transition-all duration-300 hover:bg-gray-50 text-gray-700"
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Proposer des offres/défis
+                    </Button>
+                  </>
                 )}
               </>
             )}
@@ -185,6 +197,14 @@ export function Navigation() {
           )}
         </div>
       </div>
+      
+      {/* Dialog de messagerie pour les utilisateurs */}
+      {isAuthenticated && !isAdmin && (
+        <AdminMessagerieDialog 
+          open={isMessagerieOpen} 
+          onOpenChange={setIsMessagerieOpen}
+        />
+      )}
     </nav>
   );
 }

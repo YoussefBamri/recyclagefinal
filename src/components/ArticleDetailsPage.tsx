@@ -55,11 +55,11 @@
           const data = await getArticleById(id.toString());
           if (data) {
             // 🖼️ on gère "photo" (string) et "photos" (array)
-            const rawPhotos = Array.isArray(data.photos)
-              ? data.photos
-              : data.photo
-              ? [data.photo]
-              : [];
+         const rawPhotos: string[] = Array.isArray(data.photos)
+          ? data.photos
+          : data.photo
+          ? [data.photo]
+           : [];
 
             // 🧩 Construction des URLs complètes (backend → React)
             const fullPhotoUrls = rawPhotos.map((p) => {

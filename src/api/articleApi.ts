@@ -40,7 +40,6 @@ export const getArticleById = async (id: string) => {
   return res.data;
 };
 
-// Récupérer les articles d'un utilisateur
 export const getUserArticles = async (userId: number) => {
   try {
     const response = await axios.get(`${API_URL}/user/${userId}`);
@@ -51,7 +50,7 @@ export const getUserArticles = async (userId: number) => {
   }
 };
 
-// Supprimer un article
+
 export const deleteArticle = async (id: string) => {
   try {
     const response = await axios.delete(`${API_URL}/${id}`);

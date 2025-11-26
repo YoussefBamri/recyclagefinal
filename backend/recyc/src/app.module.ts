@@ -17,6 +17,8 @@ import { DefisModule } from './defis/defis.module';
 import { ParticipationsModule } from './participations/participations.module';
 import { Defi } from './defis/defi.entity';
 import { Participation } from './participation.entity';
+import { Message } from './message.entity';
+import { MessagesModule } from './messages/messages.module';
 
 @Module({
   imports: [
@@ -32,7 +34,7 @@ import { Participation } from './participation.entity';
       username: 'root',
       password: 'root',
       database: 'db_recyclage',
-      entities: [User, Article, Defi, Participation], 
+      entities: [User, Article, Defi, Participation, Message], 
       autoLoadEntities: true,
       synchronize: true,
     }),
@@ -63,6 +65,7 @@ import { Participation } from './participation.entity';
     RecyclageModule,
     DefisModule, // ✅ module des défis
     ParticipationsModule, // ✅ module des participations
+    MessagesModule, // ✅ module des messages
   ],
   controllers: [
     AppController,

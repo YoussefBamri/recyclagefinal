@@ -26,6 +26,8 @@ import {
   ArrowRight,
   Award,
   TrendingUp,
+  MessageSquare,
+  Send,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Challenge } from '../types';
@@ -34,6 +36,9 @@ import { ChallengeParticipants } from './ChallengeParticipants';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { toast } from 'sonner';
+import { getConversationsForAdmin, getConversationWithAdmin, sendMessage, markConversationAsRead, Message, Conversation } from '../api/messageApi';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { ScrollArea } from './ui/scroll-area';
 
 interface AdminArticle {
   id: string;
@@ -130,7 +135,7 @@ export default function AdminPage() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { challenges, loading: challengesLoading, addChallenge, deleteChallenge, completeChallenge } = useChallenges();
-  const [activeSection, setActiveSection] = useState<'dashboard' | 'annonces' | 'challenges'>('dashboard');
+  const [activeSection, setActiveSection] = useState<'dashboard' | 'annonces' | 'challenges' | 'messagerie'>('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -149,6 +154,14 @@ export default function AdminPage() {
   // État pour les articles
   const [allArticles, setAllArticles] = useState<AdminArticle[]>([]);
   const [articlesLoading, setArticlesLoading] = useState(true);
+
+  // État pour la messagerie
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [conversationMessages, setConversationMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [messagerieLoading, setMessagerieLoading] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   // Charger tous les articles depuis l'API
   useEffect(() => {
@@ -172,6 +185,90 @@ export default function AdminPage() {
 
     loadArticles();
   }, []);
+
+  // Vérifier si l'utilisateur est admin
+  const isAdmin = user?.role === 'admin' || user?.email === 'admin@recycle.com';
+
+  // Charger les conversations pour l'admin (toujours, même sur le dashboard)
+  useEffect(() => {
+    if (user?.id && isAdmin) {
+      // Charger au démarrage avec loading
+      loadConversations(true);
+      
+      // Recharger périodiquement pour mettre à jour le compteur de messages non lus (sans loading)
+      const interval = setInterval(() => {
+        loadConversations(false);
+      }, 5000); // Toutes les 5 secondes
+
+      return () => clearInterval(interval);
+    }
+  }, [user?.id, isAdmin]);
+
+  // Charger les messages d'une conversation
+  useEffect(() => {
+    if (selectedConversation && user?.id) {
+      loadConversationMessages();
+    }
+  }, [selectedConversation, user?.id]);
+
+  const loadConversations = async (showLoading = false) => {
+    if (!user?.id) return;
+    try {
+      if (showLoading) {
+        setMessagerieLoading(true);
+      }
+      const adminId = parseInt(user.id);
+      const convs = await getConversationsForAdmin(adminId);
+      setConversations(convs);
+    } catch (error: any) {
+      console.error('Erreur lors du chargement des conversations:', error);
+      // Ne pas afficher d'erreur pour les rechargements automatiques
+      if (showLoading) {
+        toast.error('Erreur lors du chargement des conversations');
+      }
+    } finally {
+      if (showLoading) {
+        setMessagerieLoading(false);
+      }
+    }
+  };
+
+  const loadConversationMessages = async () => {
+    if (!selectedConversation || !user?.id) return;
+    try {
+      const adminId = parseInt(user.id);
+      const messages = await getConversationWithAdmin(selectedConversation.userId, adminId);
+      setConversationMessages(messages);
+      // Marquer comme lus
+      await markConversationAsRead(selectedConversation.userId, adminId);
+      // Recharger les conversations pour mettre à jour les compteurs (sans loading)
+      loadConversations(false);
+    } catch (error: any) {
+      console.error('Erreur lors du chargement des messages:', error);
+      toast.error('Erreur lors du chargement des messages');
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedConversation || !user?.id || sendingMessage) return;
+
+    const messageContent = newMessage.trim();
+    setNewMessage('');
+    setSendingMessage(true);
+
+    try {
+      const adminId = parseInt(user.id);
+      await sendMessage(adminId, selectedConversation.userId, messageContent);
+      // Recharger les messages
+      await loadConversationMessages();
+    } catch (error: any) {
+      console.error('Erreur lors de l\'envoi du message:', error);
+      toast.error('Erreur lors de l\'envoi du message');
+      setNewMessage(messageContent);
+    } finally {
+      setSendingMessage(false);
+    }
+  };
 
   // Calculer les statistiques
   const completedChallenges = challenges.filter(c => c.status === 'completed');
@@ -306,33 +403,6 @@ export default function AdminPage() {
     return data;
   };
 
-  // Vérifier si l'utilisateur est admin
-  const isAdmin = user?.role === 'admin' || user?.email === 'admin@recycle.com';
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
-        <Navigation />
-        <div className="max-w-4xl mx-auto px-6 py-16">
-          <div>
-            <Card className="border-0 shadow-2xl overflow-hidden">
-              <div className="bg-gradient-to-r from-red-500 to-pink-600 p-8">
-                <Shield className="w-16 h-16 text-white mx-auto mb-4" />
-              </div>
-              <CardContent className="p-12 text-center">
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">{t('admin.accessDenied')}</h1>
-                <p className="text-gray-600 text-lg">{t('admin.noPermission')}</p>
-                <Button asChild className="mt-8 gradient-primary">
-                  <Link to="/">Retour à l'accueil</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
       <Navigation />
@@ -371,7 +441,7 @@ export default function AdminPage() {
 
         {/* Dashboard - Main Cards */}
         {activeSection === 'dashboard' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Card 1: Administration des Annonces */}
             <div>
               <Card 
@@ -451,6 +521,44 @@ export default function AdminPage() {
                       <span>Reversés aux causes humanitaires</span>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Card 4: Messagerie */}
+            <div>
+              <Card 
+                className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden group"
+                onClick={() => {
+                  setActiveSection('messagerie');
+                  loadConversations(true);
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 group-hover:from-purple-500/20 group-hover:to-pink-500/20 transition-all duration-300"></div>
+                <CardContent className="p-6 relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-purple-100 rounded-2xl">
+                      <MessageSquare className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors duration-300" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">Messagerie</h3>
+                  <p className="text-gray-600 text-sm mb-4">Messages des utilisateurs</p>
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                    <span className="text-sm text-gray-500">Conversations</span>
+                    <span className="text-xl font-bold text-purple-600">{conversations.length}</span>
+                  </div>
+                  {(() => {
+                    const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
+                    return totalUnread > 0 && (
+                      <div className="mt-2 flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
+                        <MessageSquare className="w-3 h-3 text-blue-600" />
+                        <span className="text-xs text-blue-700">
+                          {totalUnread} message{totalUnread > 1 ? 's' : ''} non lu{totalUnread > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </div>
@@ -830,6 +938,192 @@ export default function AdminPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+          </div>
+        )}
+
+        {/* Section Messagerie */}
+        {activeSection === 'messagerie' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <Button variant="outline" onClick={() => setActiveSection('dashboard')} className="w-fit">
+                ← Retour au Dashboard
+              </Button>
+              <h2 className="text-2xl font-bold text-center sm:text-left">Messagerie</h2>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Liste des conversations */}
+              <Card className="border-0 shadow-md">
+                <CardContent className="p-0">
+                  <div className="p-4 border-b">
+                    <h3 className="font-semibold text-gray-900">Conversations</h3>
+                  </div>
+                  <ScrollArea className="h-[600px]">
+                    {messagerieLoading ? (
+                      <div className="flex items-center justify-center p-8">
+                        <div className="text-center">
+                          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+                          <p className="text-gray-600">Chargement...</p>
+                        </div>
+                      </div>
+                    ) : conversations.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <MessageSquare className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                        <p className="text-gray-600">Aucune conversation</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y">
+                        {conversations.map((conv) => (
+                          <div
+                            key={conv.userId}
+                            onClick={() => setSelectedConversation(conv)}
+                            className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+                              selectedConversation?.userId === conv.userId ? 'bg-blue-50' : ''
+                            }`}
+                          >
+                            <div className="flex items-start space-x-3">
+                              <Avatar className="h-10 w-10 flex-shrink-0">
+                                <AvatarFallback className="bg-primary/10 text-primary">
+                                  {conv.userName[0]?.toUpperCase() || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-1">
+                                  <h4 className="font-semibold text-sm text-gray-900 truncate">
+                                    {conv.userName}
+                                  </h4>
+                                  {conv.unreadCount > 0 && (
+                                    <span className="bg-primary text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                                      {conv.unreadCount}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-600 truncate mb-1">
+                                  {conv.lastMessage}
+                                </p>
+                                <p className="text-xs text-gray-400">
+                                  {new Date(conv.lastMessageTime).toLocaleDateString('fr-FR', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+
+              {/* Zone de conversation */}
+              <div className="lg:col-span-2">
+                <Card className="border-0 shadow-md h-[700px] flex flex-col">
+                  {selectedConversation ? (
+                    <>
+                      <CardContent className="p-4 border-b flex-shrink-0">
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-primary/10 text-primary">
+                              {selectedConversation.userName[0]?.toUpperCase() || 'U'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <h3 className="font-semibold text-gray-900">{selectedConversation.userName}</h3>
+                            <p className="text-xs text-gray-500">{selectedConversation.userEmail}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                      <ScrollArea className="flex-1 p-4">
+                        <div className="space-y-4">
+                          {conversationMessages.map((message) => {
+                            const isAdmin = message.sender.id === parseInt(user?.id || '0');
+                            return (
+                              <div
+                                key={message.id}
+                                className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}
+                              >
+                                <div
+                                  className={`flex items-start space-x-2 max-w-[80%] ${
+                                    isAdmin ? 'flex-row-reverse space-x-reverse' : ''
+                                  }`}
+                                >
+                                  <Avatar className="h-8 w-8 flex-shrink-0">
+                                    <AvatarFallback className={isAdmin ? 'bg-primary text-white text-xs' : 'bg-gray-100 text-gray-700 text-xs'}>
+                                      {isAdmin ? 'AD' : selectedConversation.userName[0]?.toUpperCase() || 'U'}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div
+                                    className={`rounded-2xl px-4 py-2 ${
+                                      isAdmin
+                                        ? 'bg-primary text-white'
+                                        : 'bg-gray-100 text-gray-900'
+                                    }`}
+                                  >
+                                    <p className="text-sm whitespace-pre-wrap break-words">
+                                      {message.content}
+                                    </p>
+                                    <p
+                                      className={`text-xs mt-1 ${
+                                        isAdmin ? 'text-white/70' : 'text-gray-500'
+                                      }`}
+                                    >
+                                      {new Date(message.createdAt).toLocaleTimeString('fr-FR', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      })}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
+                      <div className="p-4 border-t flex-shrink-0">
+                        <div className="flex items-end space-x-2">
+                          <Textarea
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            placeholder="Tapez votre message..."
+                            disabled={sendingMessage}
+                            className="flex-1 min-h-[60px]"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                              }
+                            }}
+                          />
+                          <Button
+                            onClick={handleSendMessage}
+                            disabled={!newMessage.trim() || sendingMessage}
+                            className="gradient-primary h-[60px]"
+                          >
+                            <Send className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <MessageSquare className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                          Sélectionnez une conversation
+                        </h3>
+                        <p className="text-gray-500">
+                          Choisissez une conversation dans la liste pour commencer à échanger
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              </div>
+            </div>
           </div>
         )}
       </div>

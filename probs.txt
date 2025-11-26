@@ -1,0 +1,1 @@
+j'ai deux probleme catastrofique aide moi a resoudre svp -quand je deconncte d'un admin et je connecte avec un simple user le dashbord d'admin s'ouvre se qui est faux un utilisateur ne peut pas voir le dashbord il n'a pas ses previleges --quand parfois je connecte avec admin une page s'ouvre comme montre le capture svp supprimer cette page definitive car elle fause

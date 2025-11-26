@@ -97,18 +97,15 @@ export class ArticlesService {
     return article;
   }
 
-  // ✅ Supprimer un article
   async remove(id: string) {
     const article = await this.findOne(id);
     await this.articleRepo.remove(article);
     return { message: `Article ${id} supprimé avec succès` };
   }
 
-  // ✅ Mettre à jour un article
   async update(id: string, data: Partial<Article>) {
     const article = await this.findOne(id);
     
-    // Mettre à jour les propriétés
     if (data.statut !== undefined) {
       article.statut = data.statut;
     }

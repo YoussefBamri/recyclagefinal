@@ -38,13 +38,10 @@ async function request(path: string, options: RequestInit = {}) {
 }
 
 export async function registerUser(dto: RegisterDto) {
-  // Backend current controller mounts routes under /auth (Nest logs show /auth/register)
-  // Align frontend to call /auth/register so requests reach the backend routes.
   return request('/users/register', { method: 'POST', body: JSON.stringify(dto) });
 }
 
 export async function loginUser(dto: LoginDto) {
-  // Call the backend login route under /auth
   return request('/users/login', { method: 'POST', body: JSON.stringify(dto) });
 }
 
@@ -61,4 +58,15 @@ export async function resendVerificationEmail(email: string) {
     method: 'POST',
     body: JSON.stringify({ email }) 
   });
+}
+
+export async function getAllUsers() {
+  return request('/users');
+}
+
+export async function getAdminUser() {
+  const response = await getAllUsers();
+  const users = response.users || [];
+  const admin = users.find((u: any) => u.role === 'admin' || u.email === 'admin@recycle.com');
+  return admin;
 }

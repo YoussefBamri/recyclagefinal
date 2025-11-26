@@ -6,7 +6,6 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
   constructor(private readonly mailerService: MailerService) {
-    // Vérifier la configuration au démarrage
     this.checkEmailConfiguration();
   }
 
@@ -15,12 +14,12 @@ export class EmailService {
     const smtpPass = process.env.SMTP_PASS;
 
     if (!smtpUser || smtpUser === 'your-email@gmail.com' || !smtpPass || smtpPass === 'your-app-password') {
-      this.logger.warn('⚠️  Configuration email non définie ou incomplète !');
-      this.logger.warn('📧 Les emails ne pourront pas être envoyés.');
-      this.logger.warn('💡 Créez un fichier .env dans backend/recyc/ avec vos identifiants SMTP');
-      this.logger.warn('📖 Voir EMAIL_SETUP.md pour plus d\'informations');
+      this.logger.warn(' Configuration email non définie ou incomplète !');
+      this.logger.warn('Les emails ne pourront pas être envoyés.');
+      this.logger.warn(' Créez un fichier .env dans backend/recyc/ avec vos identifiants SMTP');
+      this.logger.warn(' Voir EMAIL_SETUP.md pour plus d\'informations');
     } else {
-      this.logger.log('✅ Configuration email détectée');
+      this.logger.log(' Configuration email détectée');
     }
   }
 

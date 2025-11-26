@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 interface User {
   id: string;
@@ -58,12 +58,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Aucun utilisateur connecté au démarrage
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [challengeContributions, setChallengeContributions] = useState<ChallengeContribution[]>([]);
+
   const [adminBalance, setAdminBalance] = useState<AdminBalance>({
-    total: 5000, // Initial balance for demo
+    total: 5000,
     pendingDonations: 3500,
     completedDonations: 1000,
     transactions: [
@@ -79,43 +80,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  useEffect(() => {
+    const savedUser = localStorage.getItem("user");
+    const savedAuth = localStorage.getItem("isAuthenticated");
+
+    if (savedAuth === "true" && savedUser) {
+      setIsAuthenticated(true);
+      setUser(JSON.parse(savedUser));
+    }
+  }, []);
+
   const login = (userData: User) => {
     setUser(userData);
     setIsAuthenticated(true);
+
+    localStorage.setItem("user", JSON.stringify(userData));
+    localStorage.setItem("isAuthenticated", "true");
   };
 
+  // 🔐 LOGOUT SÉCURISÉ
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
     setNotifications([]);
+
+    // wipe storage
+    localStorage.removeItem("user");
+    localStorage.removeItem("isAuthenticated");
   };
 
-  const addNotification = (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
-    const newNotification: Notification = {
-      ...notification,
+  // 🔔 Notification
+  const addNotification = (notif: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
+    const newNotif: Notification = {
+      ...notif,
       id: Date.now().toString(),
       timestamp: new Date(),
       read: false
     };
-    setNotifications(prev => [newNotification, ...prev]);
+    setNotifications(prev => [newNotif, ...prev]);
   };
 
   const markNotificationAsRead = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === notificationId 
-          ? { ...notification, read: true }
-          : notification
+    setNotifications(prev =>
+      prev.map(n =>
+        n.id === notificationId ? { ...n, read: true } : n
       )
     );
   };
 
   const markAllNotificationsAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    );
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
+  // 🎯 Challenges
   const contributeToChallenge = (challengeId: string, amount: number) => {
     const contribution: ChallengeContribution = {
       challengeId,
@@ -123,52 +140,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       timestamp: new Date()
     };
     setChallengeContributions(prev => [...prev, contribution]);
-    
-    // Add notification for the contribution
+
     addNotification({
       type: 'challenge',
-      message: `Vous avez contribué ${amount} unités au défi écologique !`,
+      message: `Vous avez contribué ${amount} unités au défi écologique !`
     });
   };
 
-  const addAdminTransaction = (transaction: Omit<AdminBalance['transactions'][0], 'id' | 'timestamp'>) => {
-    const newTransaction = {
+  // 💰 Admin balance
+  const addAdminTransaction = (
+    transaction: Omit<AdminBalance['transactions'][0], 'id' | 'timestamp'>
+  ) => {
+    const newTx = {
       ...transaction,
       id: `tx${Date.now()}`,
       timestamp: new Date()
     };
-    
+
     setAdminBalance(prev => {
       if (!prev) return prev;
-      
+
       const newTotal = prev.total + transaction.amount;
       let newPending = prev.pendingDonations;
       let newCompleted = prev.completedDonations;
-      
-      if (transaction.type === 'challenge_completion') {
-        newPending += transaction.amount; // negative amount
-        newCompleted -= transaction.amount; // add to completed (amount is negative)
+
+      if (transaction.type === "challenge_completion") {
+        newPending += transaction.amount;
+        newCompleted -= transaction.amount;
       }
-      
+
       return {
         total: newTotal,
         pendingDonations: newPending,
         completedDonations: newCompleted,
-        transactions: [newTransaction, ...prev.transactions]
+        transactions: [newTx, ...prev.transactions]
       };
     });
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      isAuthenticated, 
-      user, 
-      notifications, 
+    <AuthContext.Provider value={{
+      isAuthenticated,
+      user,
+      notifications,
       unreadCount,
       adminBalance,
       challengeContributions,
-      login, 
-      logout, 
+      login,
+      logout,
       addNotification,
       markNotificationAsRead,
       markAllNotificationsAsRead,
@@ -182,8 +201,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) {
+    throw new Error("useAuth must be used inside AuthProvider");
   }
   return context;
 }

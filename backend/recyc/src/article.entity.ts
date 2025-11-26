@@ -10,10 +10,10 @@ import { User } from './user.entity';
 
 
 export enum ArticleStatus {
-  SALE = 'sale',        // revente
-  EXCHANGE = 'exchange', // échange
-  GIVEAWAY = 'giveaway', // don
-  SOLD = 'sold',         // déjà vendu / échangé
+  SALE = 'sale',        
+  EXCHANGE = 'exchange', 
+  GIVEAWAY = 'giveaway', 
+  SOLD = 'sold',         
 }
 
 @Entity()

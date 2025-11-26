@@ -19,6 +19,7 @@ import { useAuth } from "./AuthContext";
 import { getAllArticles } from "../api/articleApi"; // ✅ API backend
 import { ChatBot } from "./ChatBot";
 
+
 export default function HomePage() {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -130,6 +131,7 @@ export default function HomePage() {
   };
 
   return (
+
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
       <Navigation />
 
@@ -162,7 +164,6 @@ export default function HomePage() {
             {t('home.subtitle')}
           </p>
 
-          {/* --- Barre de recherche --- */}
           <div className="relative max-w-2xl mx-auto mb-10">
             <input
               type="text"
@@ -176,7 +177,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* --- Boutons d'action --- */}
           {!(user?.role === 'admin' || user?.email === 'admin@recycle.com') && (
             <div className="flex flex-wrap justify-center gap-4">
               <Link to="/creer-annonce?type=revendre" className="gradient-primary text-white px-8 py-4 rounded-xl shadow-lg hover:scale-105 font-semibold">
@@ -191,8 +191,7 @@ export default function HomePage() {
             </div>
           )}
         </motion.div>
-
-        {/* --- Challenges --- */}
+        
         {!challengesLoading && challenges.filter(c => c.status === 'active' || c.status === 'completed').length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -212,7 +211,6 @@ export default function HomePage() {
                       `${user.firstName} ${user.lastName}`
                     );
                   } catch (error) {
-                    // L'erreur est déjà gérée dans le contexte
                   }
                 }
               }}

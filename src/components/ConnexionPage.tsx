@@ -293,21 +293,6 @@ export default function ConnexionPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="remember"
-                        checked={loginData.rememberMe}
-                        onCheckedChange={(checked: boolean) =>
-                          handleLoginChange('rememberMe', checked)
-                        }
-                      />
-                      <Label htmlFor="remember" className="text-sm">
-                        Se souvenir de moi
-                      </Label>
-                    </div>
-                   
-                  </div>
 
                   <Button
                     type="submit"
@@ -419,7 +404,7 @@ export default function ConnexionPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Téléphone (optionnel)</Label>
+                    <Label htmlFor="phone">Téléphone </Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                       <Input
@@ -427,6 +412,7 @@ export default function ConnexionPage() {
                         type="tel"
                         placeholder="entrer votre téléphone"
                         className="pl-10"
+                        required
                         value={registerData.phone}
                         onChange={(e) => handleRegisterChange('phone', e.target.value)}
                       />
@@ -465,18 +451,7 @@ export default function ConnexionPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="terms"
-                      checked={registerData.acceptTerms}
-                      onCheckedChange={(checked: boolean) =>
-                        handleRegisterChange('acceptTerms', checked)
-                      }
-                    />
-                    <Label htmlFor="terms" className="text-sm">
-                      J’accepte les conditions d’utilisation
-                    </Label>
-                  </div>
+                  
 
                   <Button type="submit" disabled={loadingRegister} className="w-full">
                     {loadingRegister ? 'Création...' : 'Créer mon compte'}

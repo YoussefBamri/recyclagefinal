@@ -28,16 +28,22 @@ export class User {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   verificationToken: string | null;
-  
-  @OneToMany(() => Article, (article) => article.utilisateur, { cascade: true })
+
+  // 🔥 Articles supprimés automatiquement si user supprimé
+  @OneToMany(() => Article, (article) => article.utilisateur, {
+    cascade: true,
+    orphanedRowAction: 'delete', // TypeORM 0.3+
+  })
   articles: Article[];
-    @OneToMany(() => Participation, (participation) => participation.user)
+
+  @OneToMany(() => Participation, (participation) => participation.user, {
+    cascade: true,
+    orphanedRowAction: 'delete',
+  })
   participations: Participation[];
 
-
-  // Méthodes utilitaires de l'entité
+  // Méthode utilitaire
   sendMessage(receiver: User, content: string): void {
-    // Méthode utilitaire pour l'affichage
     console.log(`Message de ${this.name} à ${receiver.name}: ${content}`);
   }
 }

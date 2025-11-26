@@ -22,7 +22,6 @@ const mapDefiToChallenge = (defi: any): Challenge => {
   // Normaliser le statut - s'assurer qu'il est 'active', 'completed' ou 'expired'
   let status = defi.statut || defi.status || 'active';
   
-  // Gérer les enums (peuvent être des objets avec une valeur ou directement la valeur)
   if (status && typeof status === 'object') {
     if (status.value) {
       status = status.value;
